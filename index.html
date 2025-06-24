@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <input type="file" id="csvInput" accept=".csv" />
+
+    <pre id="output"></pre>
+
+    <pre>
+        const getData = async (array) => {
+            try {
+
+                const result = [];
+
+                for (const id of array) {
+                    const response = await fetch(`https://crm.yp-data.xyz/api-gateway/bo/user-management/clients/${id}`, {
+                        method: 'GET',
+                        headers: {
+                            "Authorization": "Bearer 1jUyWSmFhvlzsqtEWlS5EYJ9TQzXqd2P",
+                            "Accept": "application/json",
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    result.push(data);
+                }
+
+
+
+                // 👉 Якщо це масив об'єктів:
+                const csv = convertToCSV(result);
+                downloadCSV(csv, "clients.csv");
+
+            } catch (error) {
+                console.error("❌ Помилка при запиті:", error);
+            }
+        };
+
+        // 📌 Функція перетворення JS-об'єктів у CSV
+        function convertToCSV(objArray) {
+            const array = Array.isArray(objArray) ? objArray : [objArray];
+            const keys = Object.keys(array[0]);
+
+            const header = keys.join(",");
+            const rows = array.map(row =>
+                keys.map(k => {
+                    const val = row[k];
+                    // Екрануємо коми, лапки, нові рядки
+                    return `"${String(val).replace(/"/g, '""')}"`;
+                }).join(",")
+            );
+
+            return [header, ...rows].join("\r\n");
+        }
+
+        // 📥 Функція завантаження CSV
+        function downloadCSV(csvString, filename) {
+            const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", filename);
+            link.click();
+
+            // Очищення
+            URL.revokeObjectURL(url);
+        }
+    </pre>
+    <script>
+
+        // const response = await fetch('https://crm.yp-data.xyz/api-gateway/bo/user-management/clients/2018969082', {
+        //   method: 'GET',
+        //   headers: {
+        //     "Authorization": "Bearer 1jUyWSmFhvlzsqtEWlS5EYJ9TQzXqd2P",
+        //     "Accept": "application/json",
+        //   }
+        // });
+
+        // if (!response.ok) {
+        //   throw new Error(`HTTP error! Status: ${response.status}`);
+        // }
+
+        // const data = await response.json();
+
+
+        document.getElementById("csvInput").addEventListener("input", function (event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                const csvText = e.target.result;
+                console.log(csvText);
+                const ids = extractIdsFromCSV(csvText);
+                document.getElementById("output").textContent = JSON.stringify(ids, null, 2);
+            };
+
+            reader.readAsText(file);
+        });
+
+        function extractIdsFromCSV(csvString) {
+            const lines = csvString.trim().split("\n");
+            const headers = lines[0].split(",").map(h => h.replace(/^"|"$/g, ""));
+            console.log(headers);
+
+            const idIndex = headers.indexOf('ID');
+            if (idIndex === -1) {
+                throw new Error("Колонка 'ID' не знайдена");
+            }
+            const ids = lines.slice(1).map(line => {
+                const values = parseCsvLine(line);
+                return values[idIndex];
+            });
+            return ids;
+        }
+
+        function parseCsvLine(line) {
+            const result = [];
+            let inQuotes = false;
+            let value = "";
+
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                const nextChar = line[i + 1];
+
+                if (char === '"' && inQuotes && nextChar === '"') {
+                    value += '"';
+                    i++;
+                } else if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === "," && !inQuotes) {
+                    result.push(value);
+                    value = "";
+                } else {
+                    value += char;
+                }
+            }
+
+            result.push(value);
+            return result;
+        }
+
+
+
+    </script>
+</body>
+
+</html>
