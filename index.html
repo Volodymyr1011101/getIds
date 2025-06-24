@@ -13,7 +13,7 @@
     <pre id="output"></pre>
 
     <pre>
-        const getData = async (array) => {
+        const getData = async (array, token) => {
             try {
 
                 const result = [];
@@ -22,7 +22,7 @@
                     const response = await fetch(`https://crm.yp-data.xyz/api-gateway/bo/user-management/clients/${id}`, {
                         method: 'GET',
                         headers: {
-                            "Authorization": "Bearer 1jUyWSmFhvlzsqtEWlS5EYJ9TQzXqd2P",
+                            "Authorization": `Bearer ${token}`,
                             "Accept": "application/json",
                         }
                     });
